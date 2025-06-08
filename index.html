@@ -34,6 +34,7 @@
       box-shadow:0 2px 6px rgba(0,0,0,0.08);
       text-align:center;
       transition:background .2s,color .2s;
+      color:#222; /* Default text color */
     }
     .label {
       font-size:.85rem;
@@ -44,8 +45,6 @@
       margin-top:.3rem;
       font-weight:600;
     }
-    .up { color: #0a0; }
-    .down { color: #a00; }
 
     /* Card background helpers */
     .bg-orange { background: #f88920 !important; }
@@ -79,30 +78,31 @@
     <div class="card"><div class="label">–1% from Open</div><div id="m1" class="value">–</div></div>
   </div>
 
+  <!-- Today's High/Low as fourth row, directly below row three -->
+  <div class="row">
+    <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
+    <div class="card"><div class="label">Today Low</div><div id="todayLow" class="value">–</div></div>
+  </div>
+
   <div id="error"></div>
   <div id="lastRefreshed" class="label" style="margin-top:1rem">
     Last refreshed: –
   </div>
 
-  <!-- Today's High/Low row -->
-  <div class="row" style="margin-top:2rem">
-    <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
-    <div class="card"><div class="label">Today Low</div><div id="todayLow" class="value">–</div></div>
-  </div>
-
   <script>
     const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';
 
-    // Utility: set background and text color for a card
-    function setCardBg(id, bg, preferDark = false) {
-      const el = document.getElementById(id).parentElement;
-      el.classList.remove('bg-orange', 'bg-green', 'bg-red', 'white-text', 'black-text');
-      if (bg) {
-        el.classList.add(bg);
-        // Auto text: white for green/red/orange, else black
-        el.classList.add('white-text');
+    // Helper to set card bg and text color
+    function setCardBg(id, bgClass) {
+      const card = document.getElementById(id).parentElement;
+      // Remove all possible color classes
+      card.classList.remove('bg-orange', 'bg-green', 'bg-red', 'white-text', 'black-text');
+      // Set new bg class if provided
+      if (bgClass) {
+        card.classList.add(bgClass);
+        card.classList.add('white-text');
       } else {
-        el.classList.add('black-text');
+        card.classList.add('black-text');
       }
     }
 
@@ -142,28 +142,29 @@
       const co    = (last - open) / open;
       const ho    = (high - last) / open;
       const ol    = (last - low) / open;
-      const offs  = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p)); // note: swapped -2% and -1% for card order
-      // color triggers
-      // 1. range: orange > 6%
+      // Order for p2, p1, m2, m1 (swapped -2% and -1%)
+      const offs  = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p));
+      
+      // range: orange > 6%
       setCardBg('range', range > 0.06 ? 'bg-orange' : '');
       document.getElementById('range').textContent = fmt(range, true);
 
-      // 2. H-O%: green if >2%
+      // H-O%: green if >2%
       setCardBg('ho', ho > 0.02 ? 'bg-green' : '');
       document.getElementById('ho').textContent = fmt(ho, true);
 
-      // 3. O-L%: red if < -2%
+      // O-L%: red if < -2%
       setCardBg('ol', ol < -0.02 ? 'bg-red' : '');
       document.getElementById('ol').textContent = fmt(ol, true);
 
-      // 4. 2% box (p2): green if C-O% > 2%; red if H-O% > 2% and C-O% < 2%
+      // 2% box (p2): green if C-O% > 2%; red if H-O% > 2% and C-O% < 2%
       let p2bg = '';
       if (co > 0.02) p2bg = 'bg-green';
       if (ho > 0.02 && co < 0.02) p2bg = 'bg-red';
       setCardBg('p2', p2bg);
       document.getElementById('p2').textContent = fmt(offs[0]);
 
-      // 5. -2% box (m2): red if C-O% < -2%; green if O-L% < -2% and C-O% > -2%
+      // -2% box (m2): red if C-O% < -2%; green if O-L% < -2% and C-O% > -2%
       let m2bg = '';
       if (co < -0.02) m2bg = 'bg-red';
       if (ol < -0.02 && co > -0.02) m2bg = 'bg-green';
@@ -192,21 +193,14 @@
       setCardBg('prevL', prevLbg);
       document.getElementById('prevL').textContent = fmt(prevL);
 
-      // Last/Open
+      // Last/Open/C-O%
       document.getElementById('last').textContent = fmt(last);
       document.getElementById('open').textContent = fmt(open);
-
-      // C-O%
       document.getElementById('co').textContent = fmt(co, true);
 
       // Today high/low
       document.getElementById('todayHigh').textContent = fmt(high);
       document.getElementById('todayLow').textContent = fmt(low);
-
-      // Remove up/down classes from cards with bg color (contrast)
-      ['range','ho','ol','p2','m2','m1','p1','prevH','prevL'].forEach(id=>{
-        document.getElementById(id).classList.remove('up','down');
-      });
     }
 
     // put fetch+update+timestamp in one function
