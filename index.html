@@ -140,11 +140,23 @@
       set('m2',    fmt(offs[3]),     last > offs[3],    last < offs[3]);
     }
 
-    fetchData()
-      .then(updateUI)
-      .catch(err => {
-        document.getElementById('error').textContent = err;
-      });
+    // put fetch+update+timestamp in one function
+    async function refresh() {
+      try {
+        const data = await fetchData();
+        updateUI(data);
+        // update timestamp
+        const now = new Date();
+        document.getElementById('lastRefreshed').textContent =
+          'Last refreshed: ' + now.toLocaleTimeString();
+      } catch (e) {
+        document.getElementById('error').textContent = e;
+      }
+    }
+
+    // run once, then every minute
+    refresh();
+    setInterval(refresh, 60_000);
   </script>
 </body>
 </html>
