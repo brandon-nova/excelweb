@@ -54,21 +54,21 @@
 <body>
   <h1>SPXL Dashboard</h1>
 
-  <div id="row1" class="row">
+  <div class="row">
     <div class="card"><div class="label">SPXL Last</div><div id="last" class="value">–</div></div>
     <div class="card"><div class="label">Open</div><div id="open" class="value">–</div></div>
     <div class="card"><div class="label">Range</div><div id="range" class="value">–</div></div>
     <div class="card"><div class="label">C-O%</div><div id="co" class="value">–</div></div>
   </div>
 
-  <div id="row2" class="row">
+  <div class="row">
     <div class="card"><div class="label">H-O%</div><div id="ho" class="value">–</div></div>
     <div class="card"><div class="label">O-L%</div><div id="ol" class="value">–</div></div>
     <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
     <div class="card"><div class="label">PrevL</div><div id="prevL" class="value">–</div></div>
   </div>
 
-  <div id="row3" class="row">
+  <div class="row">
     <div class="card"><div class="label">2% from Open</div><div id="p2" class="value">–</div></div>
     <div class="card"><div class="label">1% from Open</div><div id="p1" class="value">–</div></div>
     <div class="card"><div class="label">–1% from Open</div><div id="m1" class="value">–</div></div>
@@ -78,83 +78,73 @@
   <div id="error"></div>
 
   <script>
-  const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';
+    const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';
 
-  async function fetchData() {
-    // 1) today’s quote
-    const q = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
-    ).then(r => {
-      if (!r.ok) throw new Error('Quote fetch failed');
-      return r.json();
-    });
-    const { o: open, h: high, l: low, c: last, pc: prevClose } = q;
+    async function fetchData() {
+      // 1) today’s quote
+      const { o: open, h: high, l: low, c: last, pc: prevClose } = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
+      )
+      .then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
 
-    // 2) yesterday’s H/L (may fail on weekends)
-    let prevH = null, prevL = null;
-    try {
-      const cdl = await fetch(
-        `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&count=2&token=${API_KEY}`
-      ).then(r => {
-        if (!r.ok) throw new Error();
-        return r.json();
-      });
-      if (cdl.s === 'ok') {
-        prevH = cdl.h[0];
-        prevL = cdl.l[0];
-      }
-    } catch (_) {
-      // no data → leave prevH/prevL null
+      // 2) yesterday’s H/L: try candle, but if it’s weekend or no data, skip
+      let prevH = null, prevL = null;
+      try {
+        const cdl = await fetch(
+          `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&count=2&token=${API_KEY}`
+        )
+        .then(r => r.ok ? r.json() : Promise.reject());
+        if (cdl.s === 'ok') {
+          prevH = cdl.h[0];
+          prevL = cdl.l[0];
+        }
+      } catch {}
+
+      return { open, high, low, last, prevClose, prevH, prevL };
     }
 
-    return { open, high, low, last, prevClose, prevH, prevL };
-  }
-
-  function fmt(x, pct = false) {
-    return x == null
-      ? '–'
-      : pct
+    function fmt(x, pct = false) {
+      if (x == null) return '–';
+      return pct
         ? (x * 100).toFixed(2) + '%'
         : (+x).toFixed(2);
-  }
+    }
 
-  function updateUI(d) {
-    const { open, high, low, last, prevClose, prevH, prevL } = d;
-    const range = (high - low) / open;
-    const co    = (last - open) / open;
-    const ho    = (high - last) / open;
-    const ol    = (last - low) / open;
-    const offs  = [0.02, 0.01, -0.01, -0.02].map(p => open * (1 + p));
+    function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
+      const range = (high - low) / open;
+      const co    = (last - open) / open;
+      const ho    = (high - last) / open;
+      const ol    = (last - low) / open;
+      const offs  = [0.02, 0.01, -0.01, -0.02].map(p => open * (1 + p));
 
-    const set = (id, val, up, down) => {
-      const el = document.getElementById(id);
-      el.textContent = val;
-      el.classList.toggle('up', Boolean(up));
-      el.classList.toggle('down', Boolean(down));
-    };
+      const set = (id, val, up, down) => {
+        const el = document.getElementById(id);
+        el.textContent = val;
+        el.classList.toggle('up', Boolean(up));
+        el.classList.toggle('down', Boolean(down));
+      };
 
-    set('last',  fmt(last),      last > prevClose, last < prevClose);
-    set('open',  fmt(open),      last > open,      last < open);
-    set('range', fmt(range, true), false,           false);
-    set('co',    fmt(co, true),    false,           false);
+      set('last',  fmt(last),      last > prevClose, last < prevClose);
+      set('open',  fmt(open),      last > open,      last < open);
+      set('range', fmt(range, true), false,           false);
+      set('co',    fmt(co, true),    false,           false);
 
-    set('ho',    fmt(ho, true),    false,           false);
-    set('ol',    fmt(ol, true),    false,           false);
-    set('prevH', fmt(prevH),      prevH != null && last > prevH, prevH != null && last < prevH);
-    set('prevL', fmt(prevL),      prevL != null && last > prevL, prevL != null && last < prevL);
+      set('ho',    fmt(ho, true),    false,           false);
+      set('ol',    fmt(ol, true),    false,           false);
+      set('prevH', fmt(prevH),      prevH != null && last > prevH, prevH != null && last < prevH);
+      set('prevL', fmt(prevL),      prevL != null && last > prevL, prevL != null && last < prevL);
 
-    set('p2',    fmt(offs[0]),     last > offs[0],    last < offs[0]);
-    set('p1',    fmt(offs[1]),     last > offs[1],    last < offs[1]);
-    set('m1',    fmt(offs[2]),     last > offs[2],    last < offs[2]);
-    set('m2',    fmt(offs[3]),     last > offs[3],    last < offs[3]);
-  }
+      set('p2',    fmt(offs[0]),     last > offs[0],    last < offs[0]);
+      set('p1',    fmt(offs[1]),     last > offs[1],    last < offs[1]);
+      set('m1',    fmt(offs[2]),     last > offs[2],    last < offs[2]);
+      set('m2',    fmt(offs[3]),     last > offs[3],    last < offs[3]);
+    }
 
-  fetchData()
-    .then(updateUI)
-    .catch(err => {
-      document.getElementById('error').textContent = err.message;
-    });
-</script>
-
+    fetchData()
+      .then(updateUI)
+      .catch(err => {
+        document.getElementById('error').textContent = err;
+      });
+  </script>
 </body>
 </html>
