@@ -45,13 +45,15 @@
       margin-top:.3rem;
       font-weight:600;
     }
-
     /* Card background helpers */
     .bg-orange { background: #f88920 !important; }
     .bg-green { background: #159b35 !important; }
     .bg-red   { background: #c82a2a !important; }
     .white-text { color: #fff !important; }
     .black-text { color: #222 !important; }
+    /* Text up/down for last and open */
+    .text-green { color: #159b35 !important; }
+    .text-red { color: #c82a2a !important; }
   </style>
 </head>
 <body>
@@ -67,8 +69,7 @@
   <div class="row">
     <div class="card"><div class="label">H-O%</div><div id="ho" class="value">–</div></div>
     <div class="card"><div class="label">O-L%</div><div id="ol" class="value">–</div></div>
-    <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
-    <div class="card"><div class="label">PrevL</div><div id="prevL" class="value">–</div></div>
+    <div class="card"><div class="label">Gap</div><div id="gap" class="value">–</div></div>
   </div>
 
   <div class="row">
@@ -78,10 +79,12 @@
     <div class="card"><div class="label">–1% from Open</div><div id="m1" class="value">–</div></div>
   </div>
 
-  <!-- Today's High/Low as fourth row, directly below row three -->
+  <!-- 4th row: Today High/Low, PrevH/PrevL -->
   <div class="row">
     <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
     <div class="card"><div class="label">Today Low</div><div id="todayLow" class="value">–</div></div>
+    <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
+    <div class="card"><div class="label">PrevL</div><div id="prevL" class="value">–</div></div>
   </div>
 
   <div id="error"></div>
@@ -92,18 +95,26 @@
   <script>
     const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';
 
+    // Keep last price in memory for tick-comparison
+    let lastTick = null;
+
     // Helper to set card bg and text color
     function setCardBg(id, bgClass) {
       const card = document.getElementById(id).parentElement;
-      // Remove all possible color classes
       card.classList.remove('bg-orange', 'bg-green', 'bg-red', 'white-text', 'black-text');
-      // Set new bg class if provided
       if (bgClass) {
         card.classList.add(bgClass);
         card.classList.add('white-text');
       } else {
         card.classList.add('black-text');
       }
+    }
+
+    // Helper for just text color (used for last and open)
+    function setTextColor(id, colorClass) {
+      const el = document.getElementById(id);
+      el.classList.remove('text-green', 'text-red');
+      if (colorClass) el.classList.add(colorClass);
     }
 
     async function fetchData() {
@@ -142,12 +153,26 @@
       const co    = (last - open) / open;
       const ho    = (high - last) / open;
       const ol    = (last - low) / open;
-      // Order for p2, p1, m2, m1 (swapped -2% and -1%)
+      const gap   = (open - prevClose) / prevClose;
       const offs  = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p));
-      
-      // range: orange > 6%
+      // "Last" card: compare to last tick value (except on first load)
+      setTextColor('last', null);
+      if (lastTick !== null && last > lastTick) setTextColor('last', 'text-green');
+      else if (lastTick !== null && last < lastTick) setTextColor('last', 'text-red');
+      document.getElementById('last').textContent = fmt(last);
+
+      // "Open" card: green if close > open, else red
+      setTextColor('open', null);
+      if (last > open) setTextColor('open', 'text-green');
+      else if (last < open) setTextColor('open', 'text-red');
+      document.getElementById('open').textContent = fmt(open);
+
+      // Range: orange > 6%
       setCardBg('range', range > 0.06 ? 'bg-orange' : '');
       document.getElementById('range').textContent = fmt(range, true);
+
+      // C-O%
+      document.getElementById('co').textContent = fmt(co, true);
 
       // H-O%: green if >2%
       setCardBg('ho', ho > 0.02 ? 'bg-green' : '');
@@ -157,27 +182,34 @@
       setCardBg('ol', ol < -0.02 ? 'bg-red' : '');
       document.getElementById('ol').textContent = fmt(ol, true);
 
-      // 2% box (p2): green if C-O% > 2%; red if H-O% > 2% and C-O% < 2%
+      // Gap card (row 2)
+      document.getElementById('gap').textContent = fmt(gap, true);
+
+      // 2% from Open: green if C-O% > 2%; red if H-O% > 2% and C-O% < 2%
       let p2bg = '';
       if (co > 0.02) p2bg = 'bg-green';
       if (ho > 0.02 && co < 0.02) p2bg = 'bg-red';
       setCardBg('p2', p2bg);
       document.getElementById('p2').textContent = fmt(offs[0]);
 
-      // -2% box (m2): red if C-O% < -2%; green if O-L% < -2% and C-O% > -2%
+      // -2% from Open: red if C-O% < -2%; green if O-L% < -2% and C-O% > -2%
       let m2bg = '';
       if (co < -0.02) m2bg = 'bg-red';
       if (ol < -0.02 && co > -0.02) m2bg = 'bg-green';
       setCardBg('m2', m2bg);
       document.getElementById('m2').textContent = fmt(offs[2]);
 
-      // -1% box (m1): red if C-O% < -1%
+      // -1% from Open: red if C-O% < -1%
       setCardBg('m1', co < -0.01 ? 'bg-red' : '');
       document.getElementById('m1').textContent = fmt(offs[3]);
 
-      // 1% box (p1): green if C-O% > 1%
+      // 1% from Open: green if C-O% > 1%
       setCardBg('p1', co > 0.01 ? 'bg-green' : '');
       document.getElementById('p1').textContent = fmt(offs[1]);
+
+      // Row 4: Today high/low and PrevH/PrevL
+      document.getElementById('todayHigh').textContent = fmt(high);
+      document.getElementById('todayLow').textContent = fmt(low);
 
       // PrevH: green when last > prevH, red when last < prevH
       let prevHbg = '';
@@ -193,17 +225,10 @@
       setCardBg('prevL', prevLbg);
       document.getElementById('prevL').textContent = fmt(prevL);
 
-      // Last/Open/C-O%
-      document.getElementById('last').textContent = fmt(last);
-      document.getElementById('open').textContent = fmt(open);
-      document.getElementById('co').textContent = fmt(co, true);
-
-      // Today high/low
-      document.getElementById('todayHigh').textContent = fmt(high);
-      document.getElementById('todayLow').textContent = fmt(low);
+      // Update lastTick for next tick
+      lastTick = last;
     }
 
-    // put fetch+update+timestamp in one function
     async function refresh() {
       try {
         const data = await fetchData();
