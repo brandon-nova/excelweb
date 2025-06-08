@@ -2,51 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SPXL Live Quote (Finnhub)</title>
+  <title>SPXL Dashboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body{margin:0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#fafafa;color:#222}
-    h1{margin-bottom:1rem;font-size:1.6rem}
-    #cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1rem;width:90%;max-width:600px}
-    .card{background:#fff;padding:1rem;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);text-align:center}
-    .label{font-size:.8rem;color:#555}
-    .value{font-size:1.4rem;margin-top:.2rem;font-weight:600}
-    #error{color:#c00;margin-top:1rem}
+    body {
+      margin:0;
+      font-family:system-ui,sans-serif;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:2rem;
+      background:#fafafa;
+      color:#222;
+    }
+    h1 {
+      margin-bottom:1.5rem;
+      font-size:1.8rem;
+    }
+    .row {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:1rem;
+      width:100%;
+      max-width:800px;
+      margin-bottom:1rem;
+    }
+    .card {
+      background:#fff;
+      padding:1rem;
+      border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      text-align:center;
+    }
+    .label {
+      font-size:.85rem;
+      color:#555;
+    }
+    .value {
+      font-size:1.4rem;
+      margin-top:.3rem;
+      font-weight:600;
+    }
+    .up { color: #0a0; }
+    .down { color: #a00; }
+    #error {
+      color:#c00;
+      margin-top:1rem;
+    }
   </style>
 </head>
 <body>
-  <h1>SPXL Live Quote</h1>
-  <div id="cards">
+  <h1>SPXL Dashboard</h1>
+
+  <div id="row1" class="row">
+    <div class="card"><div class="label">SPXL Last</div><div id="last" class="value">–</div></div>
     <div class="card"><div class="label">Open</div><div id="open" class="value">–</div></div>
-    <div class="card"><div class="label">Last</div><div id="last" class="value">–</div></div>
-    <div class="card"><div class="label">High</div><div id="high" class="value">–</div></div>
-    <div class="card"><div class="label">Low</div><div id="low" class="value">–</div></div>
+    <div class="card"><div class="label">Range</div><div id="range" class="value">–</div></div>
+    <div class="card"><div class="label">C-O%</div><div id="co" class="value">–</div></div>
   </div>
+
+  <div id="row2" class="row">
+    <div class="card"><div class="label">H-O%</div><div id="ho" class="value">–</div></div>
+    <div class="card"><div class="label">O-L%</div><div id="ol" class="value">–</div></div>
+    <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
+    <div class="card"><div class="label">PrevL</div><div id="prevL" class="value">–</div></div>
+  </div>
+
+  <div id="row3" class="row">
+    <div class="card"><div class="label">2% from Open</div><div id="p2" class="value">–</div></div>
+    <div class="card"><div class="label">1% from Open</div><div id="p1" class="value">–</div></div>
+    <div class="card"><div class="label">–1% from Open</div><div id="m1" class="value">–</div></div>
+    <div class="card"><div class="label">–2% from Open</div><div id="m2" class="value">–</div></div>
+  </div>
+
   <div id="error"></div>
 
   <script>
-    const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';  // ← free at https://finnhub.io
-    async function fetchSPXL() {
-      const url = `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Network error');
-      const { o, c, h, l } = await res.json();
-      return {
-        open: o.toFixed(2),
-        last: c.toFixed(2),
-        high: h.toFixed(2),
-        low:  l.toFixed(2)
+    const API_KEY = 'YOUR_FINNHUB_KEY';  // ← free at https://finnhub.io
+
+    async function fetchData() {
+      // 1) today’s quote (o,h,l,c,pc)
+      const quoteRes = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
+      );
+      if (!quoteRes.ok) throw new Error('Quote fetch failed');
+      const { o: open, h: high, l: low, c: last, pc: prevClose } = await quoteRes.json();
+
+      // 2) yesterday's high/low via candle (count=2 → [prevDay, today])
+      const candleRes = await fetch(
+        `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&count=2&token=${API_KEY}`
+      );
+      if (!candleRes.ok) throw new Error('Candle fetch failed');
+      const candle = await candleRes.json();
+      const prevH = candle.h[0];
+      const prevL = candle.l[0];
+
+      return { open, high, low, last, prevClose, prevH, prevL };
+    }
+
+    function fmt(x, pct=false) {
+      let v = pct
+        ? ((x*100).toFixed(2) + '%')
+        : (+x).toFixed(2);
+      return v;
+    }
+
+    function updateUI(d) {
+      const { open, high, low, last, prevClose, prevH, prevL } = d;
+
+      // computed
+      const range = (high - low)/open;
+      const co    = (last - open)/open;
+      const ho    = (high - last)/open;
+      const ol    = (last - low)/open;
+      const offs  = [0.02, 0.01, -0.01, -0.02].map(p => open*(1+p));
+
+      // fill & color
+      const set = (id, val, condUp, condDown) => {
+        const el = document.getElementById(id);
+        el.textContent = val;
+        el.classList.remove('up','down');
+        if (condUp)    el.classList.add('up');
+        else if(condDown) el.classList.add('down');
       };
+
+      set('last',  fmt(last),      last>prevClose, last<prevClose);
+      set('open',  fmt(open),      last>open,      last<open);
+      set('range', fmt(range, true), false,        false);
+      set('co',    fmt(co, true),   false,        false);
+
+      set('ho',    fmt(ho, true),   false,        false);
+      set('ol',    fmt(ol, true),   false,        false);
+      set('prevH', fmt(prevH),      last>prevH,   last<prevH);
+      set('prevL', fmt(prevL),      last>prevL,   last<prevL);
+
+      set('p2',    fmt(offs[0]),    last>offs[0], last<offs[0]);
+      set('p1',    fmt(offs[1]),    last>offs[1], last<offs[1]);
+      set('m1',    fmt(offs[2]),    last>offs[2], last<offs[2]);
+      set('m2',    fmt(offs[3]),    last>offs[3], last<offs[3]);
     }
 
-    function updateUI({open, last, high, low}) {
-      document.getElementById('open').textContent = open;
-      document.getElementById('last').textContent = last;
-      document.getElementById('high').textContent = high;
-      document.getElementById('low').textContent = low;
-    }
-
-    fetchSPXL()
+    fetchData()
       .then(updateUI)
       .catch(err=> {
         document.getElementById('error').textContent = err.message;
