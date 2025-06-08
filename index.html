@@ -1,4 +1,83 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SPXL Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body {
+      margin:0;
+      font-family:system-ui,sans-serif;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:2rem;
+      background:#fafafa;
+      color:#222;
+    }
+    h1 {
+      margin-bottom:1.5rem;
+      font-size:1.8rem;
+    }
+    .row {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:1rem;
+      width:100%;
+      max-width:800px;
+      margin-bottom:1rem;
+    }
+    .card {
+      background:#fff;
+      padding:1rem;
+      border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      text-align:center;
+    }
+    .label {
+      font-size:.85rem;
+      color:#555;
+    }
+    .value {
+      font-size:1.4rem;
+      margin-top:.3rem;
+      font-weight:600;
+    }
+    .up { color: #0a0; }
+    .down { color: #a00; }
+    #error {
+      color:#c00;
+      margin-top:1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>SPXL Dashboard</h1>
+
+  <div id="row1" class="row">
+    <div class="card"><div class="label">SPXL Last</div><div id="last" class="value">–</div></div>
+    <div class="card"><div class="label">Open</div><div id="open" class="value">–</div></div>
+    <div class="card"><div class="label">Range</div><div id="range" class="value">–</div></div>
+    <div class="card"><div class="label">C-O%</div><div id="co" class="value">–</div></div>
+  </div>
+
+  <div id="row2" class="row">
+    <div class="card"><div class="label">H-O%</div><div id="ho" class="value">–</div></div>
+    <div class="card"><div class="label">O-L%</div><div id="ol" class="value">–</div></div>
+    <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
+    <div class="card"><div class="label">PrevL</div><div id="prevL" class="value">–</div></div>
+  </div>
+
+  <div id="row3" class="row">
+    <div class="card"><div class="label">2% from Open</div><div id="p2" class="value">–</div></div>
+    <div class="card"><div class="label">1% from Open</div><div id="p1" class="value">–</div></div>
+    <div class="card"><div class="label">–1% from Open</div><div id="m1" class="value">–</div></div>
+    <div class="card"><div class="label">–2% from Open</div><div id="m2" class="value">–</div></div>
+  </div>
+
+  <div id="error"></div>
+
+  <script>
   const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';
 
   async function fetchData() {
@@ -76,3 +155,6 @@
       document.getElementById('error').textContent = err.message;
     });
 </script>
+
+</body>
+</html>
