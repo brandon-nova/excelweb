@@ -60,40 +60,36 @@
   <div id="error"></div>
 
   <script>
-    async function fetchSPXL() {
-      try {
-        const YAHOO_URL =
-  'https://query1.finance.yahoo.com/v8/finance/chart/SPXL?interval=1d&range=2d';
-        const PROXY = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(YAHOO_URL);
-        
-        const res = await fetch(PROXY);
+  async function fetchSPXL() {
+    try {
+      const YAHOO_URL =
+        'https://query1.finance.yahoo.com/v8/finance/chart/SPXL?interval=1d&range=2d';
+      const PROXY = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(YAHOO_URL);
 
-        const json = await res.json();
-        const quote = json.chart.result[0].indicators.quote[0];
-        const i = quote.close.length - 1;
-        return {
-          open:  quote.open[i]?.toFixed(2),
-          last:  quote.close[i]?.toFixed(2),
-          high:  quote.high[i]?.toFixed(2),
-          low:   quote.low[i]?.toFixed(2)
-        };
-      } catch(e) {
-        throw new Error('Failed to fetch data');
-      }
+      const res = await fetch(PROXY);
+      if (!res.ok) throw new Error('Network error');
+      const json = await res.json();
+      const q = json.chart.result[0].indicators.quote[0];
+      const i = q.close.length - 1;
+      return {
+        open:  q.open[i]?.toFixed(2),
+        last:  q.close[i]?.toFixed(2),
+        high:  q.high[i]?.toFixed(2),
+        low:   q.low[i]?.toFixed(2)
+      };
+    } catch(e) {
+      throw new Error('Failed to fetch data');
     }
+  }
 
-    function updateUI({open, last, high, low}) {
-      document.getElementById('open').textContent = open;
-      document.getElementById('last').textContent = last;
-      document.getElementById('high').textContent = high;
-      document.getElementById('low').textContent = low;
-    }
+  function updateUI(data) { /* unchanged */ }
 
-    fetchSPXL()
-      .then(updateUI)
-      .catch(err => {
-        document.getElementById('error').textContent = err.message;
-      });
-  </script>
+  fetchSPXL()
+    .then(updateUI)
+    .catch(err => {
+      document.getElementById('error').textContent = err.message;
+    });
+</script>
+
 </body>
 </html>
