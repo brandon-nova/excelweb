@@ -118,27 +118,37 @@
     }
 
     async function fetchData() {
-      // 1) today’s quote
-      const { o: open, h: high, l: low, c: last, pc: prevClose } = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
-      )
-      .then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
+  const API_KEY = 'your_key_here';
 
-      // 2) yesterday’s H/L: try candle, but if it’s weekend or no data, skip
-      let prevH = null, prevL = null;
-      try {
-        const cdl = await fetch(
-          `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&count=2&token=${API_KEY}`
-        )
-        .then(r => r.ok ? r.json() : Promise.reject());
-        if (cdl.s === 'ok') {
-          prevH = cdl.h[0];
-          prevL = cdl.l[0];
-        }
-      } catch {}
+  // 1) today’s quote
+  const { o: open, h: high, l: low, c: last, pc: prevClose } = await fetch(
+    `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
+  ).then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
 
-      return { open, high, low, last, prevClose, prevH, prevL };
+  // 2) yesterday’s H/L via /stock/candle with timestamp range
+  let prevH = null, prevL = null;
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const oneDay = 60 * 60 * 24;
+    const from = now - 3 * oneDay; // look back 3 days
+    const to = now;
+
+    const cdl = await fetch(
+      `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
+    ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
+
+    if (cdl.s === 'ok' && cdl.h.length >= 2) {
+      const len = cdl.h.length;
+      prevH = cdl.h[len - 2];
+      prevL = cdl.l[len - 2];
     }
+  } catch (e) {
+    console.error('Candle fetch error:', e);
+  }
+
+  return { open, high, low, last, prevClose, prevH, prevL };
+}
+
 
     function fmt(x, pct = false) {
       if (x == null) return '–';
@@ -183,6 +193,10 @@
       document.getElementById('ol').textContent = fmt(ol, true);
 
       // Gap card (row 2)
+      let gapBg = '';
+      if (gap > 0.01) gapBg = 'bg-green';
+      else if (gap < -0.01) gapBg = 'bg-red';
+      setCardBg('gap', gapBg);
       document.getElementById('gap').textContent = fmt(gap, true);
 
       // 2% from Open: green if C-O% > 2%; red if H-O% > 2% and C-O% < 2%
