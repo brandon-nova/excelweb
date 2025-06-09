@@ -126,24 +126,32 @@
 
   // 2) yesterday’s H/L via /stock/candle with timestamp range
   let prevH = null, prevL = null;
-  try {
-    const now = Math.floor(Date.now() / 1000);
-    const oneDay = 60 * 60 * 24;
-    const from = now - 3 * oneDay; // look back 3 days
-    const to = now;
+try {
+  const now = Math.floor(Date.now() / 1000);
+  const oneDay = 60 * 60 * 24;
+  const from = now - 4 * oneDay;
+  const to = now;
 
-    const cdl = await fetch(
-      `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
-    ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
+  const cdl = await fetch(
+    `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
+  ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
 
-    if (cdl.s === 'ok' && cdl.h.length >= 2) {
-      const len = cdl.h.length;
-      prevH = cdl.h[len - 2];
-      prevL = cdl.l[len - 2];
+  if (cdl.s === 'ok' && cdl.h.length > 0) {
+    const todayTS = new Date().setHours(0, 0, 0, 0) / 1000;
+
+    // Work backward to find the most recent candle that isn't today
+    for (let i = cdl.t.length - 1; i >= 0; i--) {
+      if (cdl.t[i] < todayTS) {
+        prevH = cdl.h[i];
+        prevL = cdl.l[i];
+        break;
+      }
     }
-  } catch (e) {
-    console.error('Candle fetch error:', e);
   }
+} catch (e) {
+  console.error('Candle fetch error:', e);
+}
+
 
   return { open, high, low, last, prevClose, prevH, prevL };
 }
