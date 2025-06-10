@@ -118,40 +118,40 @@
     }
 
     async function fetchData() {
-
-  // 1) today’s quote
-  const { o: open, h: high, l: low, c: last, pc: prevClose } = await fetch(
-    `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
-  ).then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
-
-  // 2) yesterday’s H/L via /stock/candle
-  let prevH = null, prevL = null;
-  try {
-      const now = Math.floor(Date.now() / 1000);
-      // Request data for the last 5 days to ensure we capture the previous trading day,
-      // even after weekends or holidays.
-      const from = now - (5 * 24 * 60 * 60);
-      const to = now;
-  
-      const cdl = await fetch(
-        `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
-      ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
-  
-      // Check if the API call was successful and returned at least two daily candles.
-      // The API returns data in chronological order.
-      if (cdl.s === 'ok' && cdl.h && cdl.h.length >= 2) {
-        // The second-to-last element corresponds to the previous trading day.
-        const prevDayIndex = cdl.h.length - 2;
-        prevH = cdl.h[prevDayIndex];
-        prevL = cdl.l[prevDayIndex];
-      } else {
-        console.warn('Could not retrieve previous day candle data.');
+      // 1) today’s quote
+      const { o: open, h: high, l: low, c: last, pc: prevClose } = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
+      ).then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
+    
+      // 2) yesterday’s H/L via /stock/candle
+      let prevH = null, prevL = null;
+      try {
+          const now = Math.floor(Date.now() / 1000);
+          // Request data for the last 5 days to ensure we capture the previous trading day,
+          // even after weekends or holidays.
+          const from = now - (5 * 24 * 60 * 60);
+          const to = now;
+      
+          const cdl = await fetch(
+            `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
+          ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
+      
+          // Check if the API call was successful and returned at least two daily candles.
+          // The API returns data in chronological order.
+          if (cdl.s === 'ok' && cdl.h && cdl.h.length >= 2) {
+            // The second-to-last element corresponds to the previous trading day.
+            const prevDayIndex = cdl.h.length - 2;
+            prevH = cdl.h[prevDayIndex];
+            prevL = cdl.l[prevDayIndex];
+          } else {
+            console.warn('Could not retrieve previous day candle data.');
+          }
+      } catch (e) {
+          console.error('Candle fetch error:', e);
       }
-  } catch (e) {
-      console.error('Candle fetch error:', e);
-  }
-  return { open, high, low, last, prevClose, prevH, prevL };
-
+      return { open, high, low, last, prevClose, prevH, prevL };
+    }
+      
     function fmt(x, pct = false) {
       if (x == null) return '–';
       return pct
