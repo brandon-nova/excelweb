@@ -266,19 +266,17 @@
       document.getElementById('todayHigh').textContent = fmt(high);
       document.getElementById('todayLow').textContent = fmt(low);
 
-      // PrevH: green when last > prevH, red when last < prevH
-      let prevHbg = '';
-      if (prevH != null && last > prevH) prevHbg = 'bg-green';
-      if (prevH != null && last < prevH) prevHbg = 'bg-red';
-      setCardBg('prevH', prevHbg);
-      document.getElementById('prevH').textContent = fmt(prevH);
+      // PrevH: green when last > prevH, else white and black
+      let prevHbg = '';
+      if (prevH != null && last > prevH) prevHbg = 'bg-green';
+      setCardBg('prevH', prevHbg);
+      document.getElementById('prevH').textContent = fmt(prevH);
 
-      // PrevL: red when last < prevL, green when last > prevL
-      let prevLbg = '';
-      if (prevL != null && last < prevL) prevLbg = 'bg-red';
-      if (prevL != null && last > prevL) prevLbg = 'bg-green';
-      setCardBg('prevL', prevLbg);
-      document.getElementById('prevL').textContent = fmt(prevL);
+      // PrevL: red when last < prevL, else white and black
+      let prevLbg = '';
+      if (prevL != null && last < prevL) prevLbg = 'bg-red';
+      setCardBg('prevL', prevLbg);
+      document.getElementById('prevL').textContent = fmt(prevL);
 
       // Update lastTick for next tick
       lastTick = last;
