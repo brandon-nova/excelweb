@@ -124,38 +124,33 @@
     `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
   ).then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
 
-  // 2) yesterday’s H/L via /stock/candle with timestamp range
+  // 2) yesterday’s H/L via /stock/candle
   let prevH = null, prevL = null;
-try {
-  const now = Math.floor(Date.now() / 1000);
-  const oneDay = 60 * 60 * 24;
-  const from = now - 4 * oneDay;
-  const to = now;
-
-  const cdl = await fetch(
-    `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
-  ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
-
-  if (cdl.s === 'ok' && cdl.h.length > 0) {
-    const todayTS = new Date().setHours(0, 0, 0, 0) / 1000;
-
-    // Work backward to find the most recent candle that isn't today
-    for (let i = cdl.t.length - 1; i >= 0; i--) {
-      if (cdl.t[i] < todayTS) {
-        prevH = cdl.h[i];
-        prevL = cdl.l[i];
-        break;
+  try {
+      const now = Math.floor(Date.now() / 1000);
+      // Request data for the last 5 days to ensure we capture the previous trading day,
+      // even after weekends or holidays.
+      const from = now - (5 * 24 * 60 * 60);
+      const to = now;
+  
+      const cdl = await fetch(
+        `https://finnhub.io/api/v1/stock/candle?symbol=SPXL&resolution=D&from=${from}&to=${to}&token=${API_KEY}`
+      ).then(r => r.ok ? r.json() : Promise.reject('Candle fetch failed'));
+  
+      // Check if the API call was successful and returned at least two daily candles.
+      // The API returns data in chronological order.
+      if (cdl.s === 'ok' && cdl.h && cdl.h.length >= 2) {
+        // The second-to-last element corresponds to the previous trading day.
+        const prevDayIndex = cdl.h.length - 2;
+        prevH = cdl.h[prevDayIndex];
+        prevL = cdl.l[prevDayIndex];
+      } else {
+        console.warn('Could not retrieve previous day candle data.');
       }
-    }
+  } catch (e) {
+      console.error('Candle fetch error:', e);
   }
-} catch (e) {
-  console.error('Candle fetch error:', e);
-}
-
-
   return { open, high, low, last, prevClose, prevH, prevL };
-}
-
 
     function fmt(x, pct = false) {
       if (x == null) return '–';
