@@ -202,8 +202,8 @@
       // Derived numbers
       const range = (high - low) / open;
       const co    = (last - open) / open;
-      const ho    = (high - last) / open;
-      const ol    = (last - low) / open;
+      const ho    = (high - open) / open;
+      const ol    = (open - low) / open;
       const gap   = (open - prevClose) / prevClose;
       const offs  = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p));
       // "Last" card: compare to last tick value (except on first load)
