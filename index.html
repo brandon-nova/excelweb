@@ -245,7 +245,7 @@
       if (co > 0.02) p2bg = 'bg-green';
       if (ho > 0.02 && co < 0.02) p2bg = 'bg-red';
       // Rejection from above
-      if (price < offs[0] && high > offs[0]) p2bg = 'bg-red';
+      if (last < offs[0] && high > offs[0]) p2bg = 'bg-red';
       setCardBg('p2', p2bg);
       document.getElementById('p2').textContent = fmt(offs[0]);
       
@@ -253,7 +253,7 @@
       let p1bg = '';
       if (co > 0.01) p1bg = 'bg-green';
       // Rejection from above
-      if (price < offs[1] && high > offs[1]) p1bg = 'bg-red';
+      if (last < offs[1] && high > offs[1]) p1bg = 'bg-red';
       setCardBg('p1', p1bg);
       document.getElementById('p1').textContent = fmt(offs[1]);
       
@@ -262,7 +262,7 @@
       if (co < -0.02) m2bg = 'bg-red';
       if (ol < -0.02 && co > -0.02) m2bg = 'bg-green';
       // Rejection from below
-      if (price > offs[2] && low < offs[2]) m2bg = 'bg-green';
+      if (last > offs[2] && low < offs[2]) m2bg = 'bg-green';
       setCardBg('m2', m2bg);
       document.getElementById('m2').textContent = fmt(offs[2]);
       
@@ -270,7 +270,7 @@
       let m1bg = '';
       if (co < -0.01) m1bg = 'bg-red';
       // Rejection from below
-      if (price > offs[3] && low < offs[3]) m1bg = 'bg-green';
+      if (last > offs[3] && low < offs[3]) m1bg = 'bg-green';
       setCardBg('m1', m1bg);
       document.getElementById('m1').textContent = fmt(offs[3]);
 
