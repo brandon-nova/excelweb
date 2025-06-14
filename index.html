@@ -80,12 +80,20 @@
     <div class="card"><div class="label">–2% from Open</div><div id="m2" class="value">–</div></div>
   </div>
 
-  <!-- 4th row: Today High/Low, PrevH/PrevL -->
+  <!-- 4th row: Today High/Low, Gap, PP -->
   <div class="row">
     <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
     <div class="card"><div class="label">Today Low</div><div id="todayLow" class="value">–</div></div>
     <div class="card"><div class="label">Gap</div><div id="gap" class="value">–</div></div>
+    <div class="card"><div class="label">Pivot (PP)</div><div id="pp" class="value">–</div></div>
   </div>
+  
+  <!-- 5th row: S1 and R1 -->
+  <div class="row">
+    <div class="card"><div class="label">Bottom Pivot</div><div id="s1" class="value">–</div></div>
+    <div class="card"><div class="label">Top Pivot</div><div id="r1" class="value">–</div></div>
+  </div>
+
 
   <div id="error"></div>
   <div id="lastRefreshed" class="label" style="margin-top:1rem">
@@ -206,6 +214,13 @@
       const ol    = (open - low) / open;
       const gap   = (open - prevClose) / prevClose;
       const offs  = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p));
+      const pp = (high + low + prevClose) / 3;
+      const s1 = (2 * pp) - high;
+      const r1 = (2 * pp) - low;
+      
+      document.getElementById('pp').textContent = fmt(pp);
+      document.getElementById('s1').textContent = fmt(s1);
+      document.getElementById('r1').textContent = fmt(r1);
       // "Last" card: compare to last tick value (except on first load)
       setTextColor('last', null);
       if (lastTick !== null && last > lastTick) setTextColor('last', 'text-green');
