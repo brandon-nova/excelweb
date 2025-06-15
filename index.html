@@ -92,6 +92,9 @@
   <div class="row">
     <div class="card"><div class="label">Bottom Pivot</div><div id="s1" class="value">–</div></div>
     <div class="card"><div class="label">Top Pivot</div><div id="r1" class="value">–</div></div>
+    <div class="card"><div class="label">Arrow</div><div id="gapDir" class="value">–</div>
+</div>
+
   </div>
 
 
@@ -267,6 +270,18 @@
       setCardBg('gap', gapBg);
       document.getElementById('gap').textContent = fmt(gap, true);
 
+      // Gap Direction Arrow
+      const gapDirEl = document.getElementById('gapDir');
+      gapDirEl.textContent = '–';
+      setCardBg('gapDir', ''); // Clear previous styles
+      
+      if (gap > 0.01 && last > open) {
+        gapDirEl.textContent = '↑';
+        setCardBg('gapDir', 'bg-green');
+      } else if (gap < -0.01 && last < open) {
+        gapDirEl.textContent = '↓';
+        setCardBg('gapDir', 'bg-red');}
+      
       // 2% from Open
       let p2bg = '';
       if (co > 0.02) p2bg = 'bg-green';
