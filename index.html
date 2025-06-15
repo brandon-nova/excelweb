@@ -34,7 +34,7 @@
       box-shadow:0 2px 6px rgba(0,0,0,0.08);
       text-align:center;
       transition:background .2s,color .2s;
-      color:#222;
+      color:#222; /* Default text color */
     }
     .label {
       font-size:.85rem;
@@ -45,21 +45,19 @@
       margin-top:.3rem;
       font-weight:600;
     }
+    /* Card background helpers */
     .bg-orange { background: #f88920 !important; }
     .bg-green { background: #159b35 !important; }
     .bg-red   { background: #c82a2a !important; }
-    .bg-yellow { background: #f9e33c !important; }
     .white-text { color: #fff !important; }
     .black-text { color: #222 !important; }
+    /* Text up/down for last and open */
     .text-green { color: #159b35 !important; }
     .text-red { color: #c82a2a !important; }
-    .text-black { color: #222 !important; }
   </style>
 </head>
 <body>
   <h1>SPXL Dashboard</h1>
-
-  <!-- Cards same as original (unchanged for brevity) -->
 
   <div class="row">
     <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
@@ -82,6 +80,7 @@
     <div class="card"><div class="label">H-O%</div><div id="ho" class="value">–</div></div>
   </div>
 
+  <!-- 4th row: Today High/Low, Gap, PP -->
   <div class="row">
     <div class="card"><div class="label">–2% Open</div><div id="m2" class="value">–</div></div>
     <div class="card"><div class="label">O-L%</div><div id="ol" class="value">–</div></div>
@@ -89,10 +88,12 @@
     <div class="card"><div class="label">Gap</div><div id="gapDir" class="value">–</div></div>
   </div>
   
+  <!-- 5th row: S1 and R1 -->
   <div class="row">
     <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
     <div class="card"><div class="label">Today Low</div><div id="todayLow" class="value">–</div></div>
   </div>
+
 
   <div id="error"></div>
   <div id="lastRefreshed" class="label" style="margin-top:1rem">
@@ -101,15 +102,23 @@
 
   <script>
     const API_KEY = 'd12vjkhr01qv1k0nill0d12vjkhr01qv1k0nillg';
-    const ALPHA_VANTAGE_API_KEY = 'XRYG08MMAVHPSCHM';
+    const ALPHA_VANTAGE_API_KEY = 'XRYG08MMAVHPSCHM'; // <--- IMPORTANT: Replace with your Alpha Vantage API Key!
 
+    // Keep last price in memory for tick-comparison
     let lastTick = null;
-    let alphaVantageCache = { prevH: null, prevL: null, lastFetchedTimestamp: 0 };
-    const ONE_DAY_MS = 86400000;
-
+    
+    // Cache for previous day's data from Alpha Vantage
+    let alphaVantageCache = {
+        prevH: null,
+        prevL: null,
+        lastFetchedTimestamp: 0 // Unix timestamp in milliseconds
+    };
+    
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000; // Cache duration for Alpha Vantage data (24 hours)
+    // Helper to set card bg and text color
     function setCardBg(id, bgClass) {
       const card = document.getElementById(id).parentElement;
-      card.classList.remove('bg-orange', 'bg-green', 'bg-red', 'bg-yellow', 'white-text', 'black-text');
+      card.classList.remove('bg-orange', 'bg-green', 'bg-red', 'white-text', 'black-text');
       if (bgClass) {
         card.classList.add(bgClass);
         card.classList.add('white-text');
@@ -118,109 +127,208 @@
       }
     }
 
+    // Helper for just text color (used for last and open)
     function setTextColor(id, colorClass) {
       const el = document.getElementById(id);
-      el.classList.remove('text-green', 'text-red', 'text-black');
+      el.classList.remove('text-green', 'text-red');
       if (colorClass) el.classList.add(colorClass);
     }
 
     async function fetchData() {
+      // 1) today’s quote
       const { o: open, h: high, l: low, c: last, pc: prevClose } = await fetch(
         `https://finnhub.io/api/v1/quote?symbol=SPXL&token=${API_KEY}`
       ).then(r => r.ok ? r.json() : Promise.reject('Quote fetch failed'));
-
+    
+      // 2) Fetch yesterday’s H/L via Alpha Vantage (with caching)
       const now = Date.now();
+
+      // Check if Alpha Vantage data is in cache and still fresh
       if (alphaVantageCache.prevH !== null && (now - alphaVantageCache.lastFetchedTimestamp < ONE_DAY_MS)) {
-        return { open, high, low, last, prevClose, prevH: alphaVantageCache.prevH, prevL: alphaVantageCache.prevL };
+          prevH = alphaVantageCache.prevH;
+          prevL = alphaVantageCache.prevL;
+          console.log('Using cached previous day high/low data from Alpha Vantage.');
+      } else {
+          try {
+              const alphaVantageUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=SPXL&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
+              const alphaVantageResponse = await fetch(alphaVantageUrl);
+              if (!alphaVantageResponse.ok) {
+                  throw new Error(`Alpha Vantage HTTP error! status: ${alphaVantageResponse.status}`);
+              }
+              const data = await alphaVantageResponse.json();
+
+              // Log the raw Alpha Vantage response for debugging purposes
+              console.log('Alpha Vantage Raw Response:', data);
+
+              if (data["Error Message"]) {
+                  // Alpha Vantage specific error, e.g., invalid API key, limit reached
+                  throw new Error(`Alpha Vantage API Error: ${data["Error Message"]}`);
+              }
+              if (!data["Time Series (Daily)"]) {
+                   console.warn("Alpha Vantage: No daily time series data found.", data);
+                   document.getElementById('error').textContent = "Alpha Vantage: No daily time series data found. Check API key/limits.";
+              } else {
+                  const dailyData = data["Time Series (Daily)"];
+                  // Get sorted dates (most recent first). Alpha Vantage usually returns newest first, but sorting ensures it.
+                  const dates = Object.keys(dailyData).sort((a, b) => new Date(b) - new Date(a));
+
+                  if (dates.length >= 2) {
+                      // The second entry is typically the previous trading day's data
+                      const previousTradingDayDate = dates[1];
+                      const previousDayCandle = dailyData[previousTradingDayDate];
+
+                      prevH = parseFloat(previousDayCandle['2. high']);
+                      prevL = parseFloat(previousDayCandle['3. low']);
+
+                      // Update Alpha Vantage cache
+                      alphaVantageCache.prevH = prevH;
+                      alphaVantageCache.prevL = prevL;
+                      alphaVantageCache.lastFetchedTimestamp = now;
+                      console.log('Fetched new previous day high/low from Alpha Vantage.');
+                  } else {
+                      console.warn("Alpha Vantage: Not enough historical data to determine previous day's high/low on free tier.");
+                      document.getElementById('error').textContent = "Alpha Vantage: Not enough historical data for PrevH/L.";
+                  }
+              }
+          } catch (e) {
+              console.error('Alpha Vantage fetch error:', e);
+              document.getElementById('error').textContent = `Error fetching PrevH/L: ${e.message || e}`;
+          }
       }
 
-      const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=SPXL&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`);
-      const data = await res.json();
-      const dates = Object.keys(data["Time Series (Daily)"] || {}).sort((a, b) => new Date(b) - new Date(a));
-      const previousDayCandle = data["Time Series (Daily)"]?.[dates[1]];
-      const prevH = parseFloat(previousDayCandle["2. high"]);
-      const prevL = parseFloat(previousDayCandle["3. low"]);
-
-      alphaVantageCache = { prevH, prevL, lastFetchedTimestamp: now };
       return { open, high, low, last, prevClose, prevH, prevL };
     }
-
+      
     function fmt(x, pct = false) {
       if (x == null) return '–';
-      return pct ? (x * 100).toFixed(2) + '%' : (+x).toFixed(2);
+      return pct
+        ? (x * 100).toFixed(2) + '%'
+        : (+x).toFixed(2);
     }
 
     function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
+      // Derived numbers
       const range = (high - low) / open;
-      const co = (last - open) / open;
-      const ho = (high - open) / open;
-      const ol = (open - low) / open;
-      const gap = (open - prevClose) / prevClose;
-      const offs = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p));
+      const co    = (last - open) / open;
+      const ho    = (high - open) / open;
+      const ol    = (open - low) / open;
+      const gap   = (open - prevClose) / prevClose;
+      const offs  = [0.02, 0.01, -0.02, -0.01].map(p => open * (1 + p));
       const pp = (high + low + prevClose) / 3;
       const s1 = (2 * pp) - high;
       const r1 = (2 * pp) - low;
-
+      
       document.getElementById('s1').textContent = fmt(s1);
-      setCardBg('s1', (last < s1) ? 'bg-red' : (low < s1 && last > s1 ? 'bg-green' : ''));
+      // Bottom Pivot (S1): red if last < s1, green if low < s1 and last > s1
+      let s1bg = '';
+      if (last < s1) s1bg = 'bg-red';
+      else if (low < s1 && last > s1) s1bg = 'bg-green';
+      setCardBg('s1', s1bg);
 
       document.getElementById('r1').textContent = fmt(r1);
-      setCardBg('r1', (last > r1) ? 'bg-green' : (high > r1 && last < r1 ? 'bg-red' : ''));
+      // Top Pivot (R1): green if last > r1, red if high > r1 and last < r1
+      let r1bg = '';
+      if (last > r1) r1bg = 'bg-green';
+      else if (high > r1 && last < r1) r1bg = 'bg-red';
+      setCardBg('r1', r1bg);
 
+      // "Last" card: compare to last tick value (except on first load)
       setTextColor('last', null);
       if (lastTick !== null && last > lastTick) setTextColor('last', 'text-green');
       else if (lastTick !== null && last < lastTick) setTextColor('last', 'text-red');
-      setCardBg('last', 'bg-yellow');
       document.getElementById('last').textContent = fmt(last);
 
-      setTextColor('open', last > open ? 'text-green' : last < open ? 'text-red' : '');
+      // "Open" card: green if close > open, else red
+      setTextColor('open', null);
+      if (last > open) setTextColor('open', 'text-green');
+      else if (last < open) setTextColor('open', 'text-red');
       document.getElementById('open').textContent = fmt(open);
 
-      setCardBg('range', range > 0.04 ? 'bg-orange' : '');
+      // Range: orange > 6%
+      setCardBg('range', range > 0.06 ? 'bg-orange' : '');
       document.getElementById('range').textContent = fmt(range, true);
 
-      setTextColor('co', co > 0 ? 'text-green' : co < 0 ? 'text-red' : 'text-black');
+      // C-O%
       document.getElementById('co').textContent = fmt(co, true);
 
+      // H-O%: green if >2%
       setCardBg('ho', ho > 0.02 ? 'bg-green' : '');
       document.getElementById('ho').textContent = fmt(ho, true);
 
+      // O-L%: red if < -2%
       setCardBg('ol', ol < -0.02 ? 'bg-red' : '');
       document.getElementById('ol').textContent = fmt(ol, true);
 
-      setCardBg('gap', gap > 0.01 ? 'bg-green' : gap < -0.01 ? 'bg-red' : '');
+      // Gap card (row 2)
+      let gapBg = '';
+      if (gap > 0.01) gapBg = 'bg-green';
+      else if (gap < -0.01) gapBg = 'bg-red';
+      setCardBg('gap', gapBg);
       document.getElementById('gap').textContent = fmt(gap, true);
 
-      const gapDir = document.getElementById('gapDir');
-      gapDir.textContent = '–';
-      setCardBg('gapDir', '');
-      if (gap > 0.01 && last > open) { gapDir.textContent = '↑'; setCardBg('gapDir', 'bg-green'); }
-      else if (gap < -0.01 && last < open) { gapDir.textContent = '↓'; setCardBg('gapDir', 'bg-red'); }
-
+      // Gap Direction Arrow
+      const gapDirEl = document.getElementById('gapDir');
+      gapDirEl.textContent = '–';
+      setCardBg('gapDir', ''); // Clear previous styles
+      
+      if (gap > 0.01 && last > open) {
+        gapDirEl.textContent = '↑';
+        setCardBg('gapDir', 'bg-green');
+      } else if (gap < -0.01 && last < open) {
+        gapDirEl.textContent = '↓';
+        setCardBg('gapDir', 'bg-red');}
+      
+      // 2% from Open
+      let p2bg = '';
+      if (co > 0.02) p2bg = 'bg-green';
+      if (ho > 0.02 && co < 0.02) p2bg = 'bg-red';
+      // Rejection from above
+      if (last < offs[0] && high > offs[0]) p2bg = 'bg-red';
+      setCardBg('p2', p2bg);
       document.getElementById('p2').textContent = fmt(offs[0]);
-      setCardBg('p2', (co > 0.02) ? 'bg-green' : (last < offs[0] && high > offs[0] ? 'bg-red' : ''));
-
+      
+      // 1% from Open
+      let p1bg = '';
+      if (co > 0.01) p1bg = 'bg-green';
+      // Rejection from above
+      if (last < offs[1] && high > offs[1]) p1bg = 'bg-red';
+      setCardBg('p1', p1bg);
       document.getElementById('p1').textContent = fmt(offs[1]);
-      setCardBg('p1', (co > 0.01) ? 'bg-green' : (last < offs[1] && high > offs[1] ? 'bg-red' : ''));
-
+      
+      // -2% from Open
+      let m2bg = '';
+      if (co < -0.02) m2bg = 'bg-red';
+      if (ol < -0.02 && co > -0.02) m2bg = 'bg-green';
+      // Rejection from below
+      if (last > offs[2] && low < offs[2]) m2bg = 'bg-green';
+      setCardBg('m2', m2bg);
       document.getElementById('m2').textContent = fmt(offs[2]);
-      setCardBg('m2', (co < -0.02) ? 'bg-red' : (last > offs[2] && low < offs[2] ? 'bg-green' : ''));
-
+      
+      // -1% from Open
+      let m1bg = '';
+      if (co < -0.01) m1bg = 'bg-red';
+      // Rejection from below
+      if (last > offs[3] && low < offs[3]) m1bg = 'bg-green';
+      setCardBg('m1', m1bg);
       document.getElementById('m1').textContent = fmt(offs[3]);
-      setCardBg('m1', (co < -0.01) ? 'bg-red' : (last > offs[3] && low < offs[3] ? 'bg-green' : ''));
 
-      setCardBg('prevH', last > prevH ? 'bg-green' : '');
-      document.getElementById('prevH').textContent = fmt(prevH);
-
-      setCardBg('prevL', last < prevL ? 'bg-red' : '');
-      document.getElementById('prevL').textContent = fmt(prevL);
-
-      setTextColor('todayHigh', high > prevH ? 'text-green' : 'text-black');
+      // Row 4: Today high/low and PrevH/PrevL
       document.getElementById('todayHigh').textContent = fmt(high);
-
-      setTextColor('todayLow', low < prevL ? 'text-red' : 'text-black');
       document.getElementById('todayLow').textContent = fmt(low);
 
+      // PrevH: green when last > prevH, else white and black
+      let prevHbg = '';
+      if (prevH != null && last > prevH) prevHbg = 'bg-green';
+      setCardBg('prevH', prevHbg);
+      document.getElementById('prevH').textContent = fmt(prevH);
+
+      // PrevL: red when last < prevL, else white and black
+      let prevLbg = '';
+      if (prevL != null && last < prevL) prevLbg = 'bg-red';
+      setCardBg('prevL', prevLbg);
+      document.getElementById('prevL').textContent = fmt(prevL);
+
+      // Update lastTick for next tick
       lastTick = last;
     }
 
@@ -228,15 +336,18 @@
       try {
         const data = await fetchData();
         updateUI(data);
+        // update timestamp
+        const now = new Date();
         document.getElementById('lastRefreshed').textContent =
-          'Last refreshed: ' + new Date().toLocaleTimeString();
+          'Last refreshed: ' + now.toLocaleTimeString();
       } catch (e) {
         document.getElementById('error').textContent = e;
       }
     }
 
+    // run once, then every minute
     refresh();
-    setInterval(refresh, 60000);
+    setInterval(refresh, 60_000);
   </script>
 </body>
 </html>
