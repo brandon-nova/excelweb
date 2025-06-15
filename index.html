@@ -50,6 +50,7 @@
     .bg-green { background: #159b35 !important; }
     .bg-yellow { background: #f5d742 !important; }
     .bg-red   { background: #c82a2a !important; }
+    .bg-blue { background: #2c9ed4 !important; }
     .white-text { color: #fff !important; }
     .black-text { color: #222 !important; }
     /* Text up/down for last and open */
@@ -64,19 +65,19 @@
     <div class="card"><div class="label">PrevH</div><div id="prevH" class="value">–</div></div>
     <div class="card"><div class="label">Top</div><div id="r1" class="value">–</div></div>
     <div class="card"><div class="label">PrevL</div><div id="prevL" class="value">–</div></div>
-    <div class="card"><div class="label">Bottom Pivot</div><div id="s1" class="value">–</div></div>
+    <div class="card"><div class="label">Bottom</div><div id="s1" class="value">–</div></div>
   </div>
 
   <div class="row">
     <div class="card"><div class="label">2% Open</div><div id="p2" class="value">–</div></div>
-    <div class="card"><div class="label">Last</div><div id="last" class="value">–</div></div>
+    <div class="card"><div class="label">Range</div><div id="range" class="value">–</div></div>
     <div class="card"><div class="label">1% Open</div><div id="p1" class="value">–</div></div>
     <div class="card"><div class="label">C-O%</div><div id="co" class="value">–</div></div>    
   </div>
 
   <div class="row">
     <div class="card"><div class="label">Open</div><div id="open" class="value">–</div></div>
-    <div class="card"><div class="label">Range</div><div id="range" class="value">–</div></div>
+    <div class="card"><div class="label">Last</div><div id="last" class="value">–</div></div>
     <div class="card"><div class="label">–1% Open</div><div id="m1" class="value">–</div></div>
     <div class="card"><div class="label">H-O%</div><div id="ho" class="value">–</div></div>
   </div>
@@ -242,8 +243,9 @@
 
       // "Open" card: green if close > open, else red
       setTextColor('open', null);
-      if (last > open) setTextColor('open', 'text-green');
-      else if (last < open) setTextColor('open', 'text-red');
+      //if (last > open) setTextColor('open', 'text-green');
+      //else if (last < open) setTextColor('open', 'text-red');
+      setCardBg('open', 'bg-blue');
       document.getElementById('open').textContent = fmt(open);
 
       // Range: orange > 4%
