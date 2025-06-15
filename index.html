@@ -48,6 +48,7 @@
     /* Card background helpers */
     .bg-orange { background: #f88920 !important; }
     .bg-green { background: #159b35 !important; }
+    .bg-yellow { background: #f5d742 !important; }
     .bg-red   { background: #c82a2a !important; }
     .white-text { color: #fff !important; }
     .black-text { color: #222 !important; }
@@ -236,6 +237,7 @@
       setTextColor('last', null);
       if (lastTick !== null && last > lastTick) setTextColor('last', 'text-green');
       else if (lastTick !== null && last < lastTick) setTextColor('last', 'text-red');
+      setCardBg('last', 'bg-yellow');
       document.getElementById('last').textContent = fmt(last);
 
       // "Open" card: green if close > open, else red
@@ -244,12 +246,16 @@
       else if (last < open) setTextColor('open', 'text-red');
       document.getElementById('open').textContent = fmt(open);
 
-      // Range: orange > 6%
-      setCardBg('range', range > 0.06 ? 'bg-orange' : '');
+      // Range: orange > 4%
+      setCardBg('range', range > 0.04 ? 'bg-orange' : '');
       document.getElementById('range').textContent = fmt(range, true);
 
       // C-O%
-      document.getElementById('co').textContent = fmt(co, true);
+      const coEl = document.getElementById('co');
+      coEl.textContent = fmt(co, true);
+      coEl.style.color = co > 0 ? '#159b35' : co < 0 ? '#c82a2a' : '#222';
+      setCardBg('co', ''); // ensure no box color
+
 
       // H-O%: green if >2%
       setCardBg('ho', ho > 0.02 ? 'bg-green' : '');
@@ -314,7 +320,15 @@
 
       // Row 4: Today high/low and PrevH/PrevL
       document.getElementById('todayHigh').textContent = fmt(high);
-      document.getElementById('todayLow').textContent = fmt(low);
+      document.getElementById('todayLow').textContent = fmt(low);const todayHighEl = document.getElementById('todayHigh');
+      const todayLowEl = document.getElementById('todayLow');
+      todayHighEl.textContent = fmt(high);
+      todayLowEl.textContent = fmt(low);
+      todayHighEl.style.color = (prevH != null && high > prevH) ? '#159b35' : '#222';
+      todayLowEl.style.color = (prevL != null && low < prevL) ? '#c82a2a' : '#222';
+      setCardBg('todayHigh', ''); // remove box color
+      setCardBg('todayLow', '');  // remove box color
+
 
       // PrevH: green when last > prevH, else white and black
       let prevHbg = '';
