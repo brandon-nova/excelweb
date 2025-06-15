@@ -220,7 +220,19 @@
       
       document.getElementById('pp').textContent = fmt(pp);
       document.getElementById('s1').textContent = fmt(s1);
+      // Bottom Pivot (S1): red if last < s1, green if low < s1 and last > s1
+      let s1bg = '';
+      if (last < s1) s1bg = 'bg-red';
+      else if (low < s1 && last > s1) s1bg = 'bg-green';
+      setCardBg('s1', s1bg);
+
       document.getElementById('r1').textContent = fmt(r1);
+      // Top Pivot (R1): green if last > r1, red if high > r1 and last < r1
+      let r1bg = '';
+      if (last > r1) r1bg = 'bg-green';
+      else if (high > r1 && last < r1) r1bg = 'bg-red';
+      setCardBg('r1', r1bg);
+
       // "Last" card: compare to last tick value (except on first load)
       setTextColor('last', null);
       if (lastTick !== null && last > lastTick) setTextColor('last', 'text-green');
