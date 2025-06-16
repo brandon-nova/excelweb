@@ -86,14 +86,15 @@
   <div class="row">
     <div class="card"><div class="label">–2% Open</div><div id="m2" class="value">–</div></div>
     <div class="card"><div class="label">O-L%</div><div id="ol" class="value">–</div></div>
-    <div class="card"><div class="label">Gap%</div><div id="gap" class="value">–</div></div>
-    <div class="card"><div class="label">Gap</div><div id="gapDir" class="value">–</div></div>
+    <div class="card"><div class="label">PrevC</div><div id="prevC" class="value">–</div></div>
+    <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
   </div>
   
   <!-- 5th row: S1 and R1 -->
   <div class="row">
-    <div class="card"><div class="label">Today High</div><div id="todayHigh" class="value">–</div></div>
+    <div class="card"><div class="label">Gap</div><div id="gapDir" class="value">–</div></div>
     <div class="card"><div class="label">Today Low</div><div id="todayLow" class="value">–</div></div>
+    <div class="card"><div class="label">Gap%</div><div id="gap" class="value">–</div></div>
   </div>
 
 
@@ -168,7 +169,6 @@
               }
               if (!data["Time Series (Daily)"]) {
                    console.warn("Alpha Vantage: No daily time series data found.", data);
-                   document.getElementById('error').textContent = "Alpha Vantage: No daily time series data found. Check API key/limits.";
               } else {
                   const dailyData = data["Time Series (Daily)"];
                   // Get sorted dates (most recent first). Alpha Vantage usually returns newest first, but sorting ensures it.
@@ -334,15 +334,30 @@
 
       // PrevH: green when last > prevH, else white and black
       let prevHbg = '';
-      if (prevH != null && last > prevH) prevHbg = 'bg-green';
-      setCardBg('prevH', prevHbg);
-      document.getElementById('prevH').textContent = fmt(prevH);
+      if (prevH != null) {
+        if (last > prevH) prevHbg = 'bg-green';
+        else if (high > prevH && last < prevH) prevHbg = 'bg-red';
+      }
+      setCardBg('prevH', prevHbg);
+      document.getElementById('prevH').textContent = fmt(prevH);
 
       // PrevL: red when last < prevL, else white and black
       let prevLbg = '';
-      if (prevL != null && last < prevL) prevLbg = 'bg-red';
-      setCardBg('prevL', prevLbg);
-      document.getElementById('prevL').textContent = fmt(prevL);
+      if (prevL != null) {
+        if (last < prevL) prevLbg = 'bg-red';
+        else if (low < prevL && last > prevL) prevLbg = 'bg-green';
+      }
+      setCardBg('prevL', prevLbg);
+      document.getElementById('prevL').textContent = fmt(prevL);
+
+      let prevCbg = '';
+      if (prevClose != null) {
+        if (low < prevClose && last > prevClose) prevCbg = 'bg-green';
+        else if (high > prevClose && last < prevClose) prevCbg = 'bg-red';
+      }
+      setCardBg('prevC', prevCbg);
+      document.getElementById('prevC').textContent = fmt(prevClose);
+
 
       // Update lastTick for next tick
       lastTick = last;
