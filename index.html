@@ -279,12 +279,13 @@
       gapDirEl.textContent = '–';
       setCardBg('gapDir', ''); // Clear previous styles
       
-      if (gap > 0.01 && last > open) {
+      if (gap > 0.01) {
         gapDirEl.textContent = '↑';
-        setCardBg('gapDir', 'bg-green');
-      } else if (gap < -0.01 && last < open) {
+        if (last > open) setCardBg('gapDir', 'bg-green');
+      } else if (gap < -0.01) {
         gapDirEl.textContent = '↓';
-        setCardBg('gapDir', 'bg-red');}
+        if (last < open) setCardBg('gapDir', 'bg-red');
+      }
       
       // 2% from Open
       let p2bg = '';
@@ -352,11 +353,18 @@
 
       let prevCbg = '';
       if (prevClose != null) {
-        if (low < prevClose && last > prevClose) prevCbg = 'bg-green';
-        else if (high > prevClose && last < prevClose) prevCbg = 'bg-red';
+        // Green: open < prevC and last > prevC
+        if (open < prevClose && last > prevClose) prevCbg = 'bg-green';
+        // Green: open > prevC AND today's low < prevC and last > prevC
+        else if (open > prevClose && low < prevClose && last > prevClose) prevCbg = 'bg-green';
+        // Red: open > prevC and last < prevC
+        else if (open > prevClose && last < prevClose) prevCbg = 'bg-red';
+        // Red: open < prevC AND today's high > prevC and last < prevC
+        else if (open < prevClose && high > prevClose && last < prevClose) prevCbg = 'bg-red';
       }
       setCardBg('prevC', prevCbg);
       document.getElementById('prevC').textContent = fmt(prevClose);
+
 
 
       // Update lastTick for next tick
