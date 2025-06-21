@@ -119,6 +119,26 @@ function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
   update('prevC', prevClose, prevCbg);
 
   lastTick = last;
+
+  const reverseSignalEl = document.getElementById('reverseSignal');
+  let signalText = '–';
+  let signalBg = '';
+  let signalColor = '#222';
+  
+  if ((high > prevH && last < prevH) || (high > offs[0] && last < offs[0])) {
+    signalText = '↓ Reverse Sell';
+    signalBg = 'bg-red';
+    signalColor = '#fff';
+  } else if ((low < prevL && last > prevL) || (low < offs[2] && last > offs[2])) {
+    signalText = '↑ Reverse Buy';
+    signalBg = 'bg-green';
+    signalColor = '#fff';
+  }
+  
+  reverseSignalEl.textContent = signalText;
+  reverseSignalEl.style.color = signalColor;
+  setCardBg('reverseSignal', signalBg);
+
 }
 
 async function refresh() {
