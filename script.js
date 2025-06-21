@@ -80,22 +80,23 @@ function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
   const s1 = (2 * pp) - high;
   const r1 = (2 * pp) - low;
 
-  const update = (id, value, bg = '', color = '') => {
+  const update = (id, value, bg = '', color = '', isPct = false) => {
     const el = document.getElementById(id);
-    el.textContent = fmt(value);
+    el.textContent = fmt(value, isPct);
     if (color) el.style.color = color;
     setCardBg(id, bg);
   };
+
 
   update('s1', s1, last < s1 ? 'bg-red' : (low < s1 && last > s1 ? 'bg-green' : ''));
   update('r1', r1, last > r1 ? 'bg-green' : (high > r1 && last < r1 ? 'bg-red' : ''));
   update('last', last, 'bg-yellow'); setTextColor('last', last > lastTick ? 'text-green' : last < lastTick ? 'text-red' : null);
   update('open', open, 'bg-blue');
-  update('range', range, range > 0.04 ? 'bg-orange' : '');
-  update('co', co, '', co > 0 ? '#159b35' : co < 0 ? '#c82a2a' : '#222');
-  update('ho', ho, ho > 0.02 ? 'bg-green' : '');
-  update('ol', ol, ol < -0.02 ? 'bg-red' : '');
-  update('gap', gap, gap > 0.01 ? 'bg-green' : gap < -0.01 ? 'bg-red' : '');
+  update('range', range, range > 0.04 ? 'bg-orange' : '', '', true);
+  update('co', co, '', co > 0 ? '#159b35' : co < 0 ? '#c82a2a' : '#222', true);
+  update('ho', ho, ho > 0.02 ? 'bg-green' : '', '', true);
+  update('ol', ol, ol < -0.02 ? 'bg-red' : '', '', true);
+  update('gap', gap, gap > 0.01 ? 'bg-green' : gap < -0.01 ? 'bg-red' : '', '', true);
 
   const dir = document.getElementById('gapDir');
   dir.textContent = gap > 0.01 ? '↑' : gap < -0.01 ? '↓' : '–';
