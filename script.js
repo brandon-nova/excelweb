@@ -85,20 +85,6 @@ function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
     el.textContent = fmt(value, isPct);
     if (color) el.style.color = color;
     setCardBg(id, bg);
-
-    // Range Trigger logic
-  const rangeTriggerText = getRangeTriggerText({
-    last,
-    r1,
-    prevH,
-    p2: open * 1.02,
-    p1: open * 1.01,
-    s1,
-    prevL,
-    m2: open * 0.98,
-    m1: open * 0.99
-  });
-  document.getElementById("rangeTrigger").textContent = rangeTriggerText;
   };
 
 
@@ -154,6 +140,19 @@ function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
   reverseSignalEl.style.color = signalColor;
   setCardBg('reverseSignal', signalBg);
 
+  // Range Trigger logic
+  const rangeTriggerText = getRangeTriggerText({
+    last,
+    r1,
+    prevH,
+    p2: open * 1.02,
+    p1: open * 1.01,
+    s1,
+    prevL,
+    m2: open * 0.98,
+    m1: open * 0.99
+  });
+  document.getElementById("rangeTrigger").textContent = rangeTriggerText;
 }
 
 async function refresh() {
