@@ -85,6 +85,20 @@ function updateUI({ open, high, low, last, prevClose, prevH, prevL }) {
     el.textContent = fmt(value, isPct);
     if (color) el.style.color = color;
     setCardBg(id, bg);
+
+    // Range Trigger logic
+  const rangeTriggerText = getRangeTriggerText({
+    last,
+    r1,
+    prevH,
+    p2: open * 1.02,
+    p1: open * 1.01,
+    s1,
+    prevL,
+    m2: open * 0.98,
+    m1: open * 0.99
+  });
+  document.getElementById("rangeTrigger").textContent = rangeTriggerText;
   };
 
 
@@ -152,6 +166,22 @@ async function refresh() {
     document.getElementById('error').textContent = e;
   }
 }
+
+function getRangeTriggerText({ last, r1, prevH, p2, p1, s1, prevL, m2, m1 }) {
+  last = +last; r1 = +r1; prevH = +prevH; p2 = +p2; p1 = +p1;
+  s1 = +s1; prevL = +prevL; m2 = +m2; m1 = +m1;
+
+  if (last > r1 && last > prevH && last > p2 && last > p1) return "T,H,2,1";
+  if (last > prevH && last > p2 && last > p1) return "H,2,1";
+  if (last > p2 && last > p1) return "2,1";
+  if (last > p1) return "1";
+  if (last < s1 && last < prevL && last < m2 && last < m1) return "B,L,-2,-1";
+  if (last < prevL && last < m2 && last < m1) return "L,-2,-1";
+  if (last < m2 && last < m1) return "-2,-1";
+  if (last < m1) return "-1";
+  return "–";
+}
+
 
 refresh();
 setInterval(refresh, 60_000);
