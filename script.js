@@ -13,13 +13,30 @@ const ONE_DAY_MS = 86400000;
 
 function setCardBg(id, bgClass) {
   const card = document.getElementById(id).parentElement;
-  card.classList.remove('bg-orange', 'bg-green', 'bg-red', 'white-text', 'black-text');
+  card.classList.remove('bg-orange', 'bg-green', 'bg-red', 'white-text', 'black-text', 'bg-yellow', 'bg-blue');
+
   if (bgClass) {
     card.classList.add(bgClass, 'white-text');
   } else {
     card.classList.add('black-text');
   }
+
+  // --- TITLE (LABEL) COLOR LOGIC ---
+  const label = card.querySelector('.label');
+  if (label) {
+    label.classList.remove('label-white');
+    if (
+      bgClass === 'bg-green' ||
+      bgClass === 'bg-red' ||
+      bgClass === 'bg-yellow' ||
+      bgClass === 'bg-orange' ||
+      bgClass === 'bg-blue'
+    ) {
+      label.classList.add('label-white');
+    }
+  }
 }
+
 
 function setTextColor(id, colorClass) {
   const el = document.getElementById(id);
