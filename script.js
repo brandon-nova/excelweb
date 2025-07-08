@@ -186,6 +186,24 @@ async function refresh() {
 function getRangeTriggerText({ last, r1, prevH, p2, p1, s1, prevL, m2, m1 }) {
   last = +last; r1 = +r1; prevH = +prevH; p2 = +p2; p1 = +p1;
   s1 = +s1; prevL = +prevL; m2 = +m2; m1 = +m1;
+  const triggers = [];
+
+  if (last > r1) triggers.push('T');
+  if (last > prevH) triggers.push('H');
+  if (last > p2) triggers.push('2');
+  if (last > p1) triggers.push('1');
+  if (last < s1) triggers.push('B');
+  if (last < prevL) triggers.push('L');
+  if (last < m2) triggers.push('-2');
+  if (last < m1) triggers.push('-1');
+  
+  return triggers.length ? triggers.join(',') : "–";
+}
+
+/* OLD Logic, backup
+function getRangeTriggerText({ last, r1, prevH, p2, p1, s1, prevL, m2, m1 }) {
+  last = +last; r1 = +r1; prevH = +prevH; p2 = +p2; p1 = +p1;
+  s1 = +s1; prevL = +prevL; m2 = +m2; m1 = +m1;
 
   if (last > r1 && last > prevH && last > p2 && last > p1) return "T,H,2,1";
   if (last > prevH && last > p2 && last > p1) return "H,2,1";
@@ -196,7 +214,7 @@ function getRangeTriggerText({ last, r1, prevH, p2, p1, s1, prevL, m2, m1 }) {
   if (last < m2 && last < m1) return "-2,-1";
   if (last < m1) return "-1";
   return "–";
-}
+}*/
 
 
 refresh();
